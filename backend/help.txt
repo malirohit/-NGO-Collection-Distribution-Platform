@@ -1,0 +1,132 @@
+import userModel from "../models/userModel.js";
+import donationModel from "../models/donationModel.js";
+
+
+const createDonation = async (req, res) => {
+
+    const { ngoId, userName, itemName, description, userAddress } = req.body;
+
+    const userId = req.user._id;
+
+    try {
+
+        console.log(req.file);
+
+
+        //const pdfUrl = req.file ? req.file.path : undefined;
+
+        const pdfUrl = req.file
+            ? (req.file.path || req.file.secure_url || req.file.url)
+            : undefined;
+
+
+
+        const donation = await donationModel.create({ userId, ngoId, userName, itemName, description, userAddress, pdfUrl });
+
+        res.status(201).json(donation);
+
+    } catch (error) {
+
+        res.status(400).json({
+            message: error.message
+        });
+
+    }
+};
+
+const updateStatus = async (req, res) => {
+
+    const { id } = req.params; // NGO Id
+
+    const { status } = req.body; // approved or rejected
+
+    try {
+
+        const donation = await donationModel.findById(id);
+
+        if (!donation) return res.status(404).json({
+            success: false,
+            message: "Donation not found"
+        });
+
+        donation.status = status;
+
+        await donation.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Status Changed Successfully",
+            donation,
+        });
+    } catch (error) {
+        res.status(400).json({
+            message: error.message
+        });
+    }
+};
+
+const getUserDonations = async (req, res) => {
+
+    try {
+
+        // You will get donationId,useId,ngoId,ngoName,ngo Logo Url
+        const donations = await donationModel
+            .find({ userId: req.params.userId })
+            .populate('ngoId', 'name logoUrl'); // fetch the corresponding User document where _id = ngoId
+
+        //  This replaces ngoId in each donation document with the NGO document that has name and logoUrl.
+        //   So in the frontend, donation.ngoName does not exist.
+        //   You need to access donation.ngoId.name instead.
+        //   <CardDescription>Donated To: {donation.ngoId?.name}</CardDescription>
+
+        // populate replaces ObjectId with the actual document data- {name , logoUrl}
+        // Go to the User collection, find the document whose _id matches this ngoId, 
+        // and replace the ObjectId with that document
+
+        //         ngoId stores an ObjectId (e.g., "64f8a1c2...").
+
+        // ref: 'User' tells Mongoose that this ID references the User collection.
+
+        // When you call .populate('ngoId'), Mongoose does this internally:
+
+        // Looks at the ref ('User') → knows which collection to query.
+
+        // Finds the document in User where _id = ngoId.
+
+        // Replaces the ngoId field in the donation document with the actual User document.
+
+        res.status(200).json({
+            success: true,
+            donations // Array of donation object done by particular use
+        });
+
+    } catch (error) {
+
+        res.status(400).json({
+            message: error.message
+        });
+
+    }
+};
+
+const getNGODonations = async (req, res) => {
+
+    try {
+
+        const donations = await donationModel.find({ ngoId: req.params.ngoId }).populate('userId', 'name email');
+
+        res.status(200).json({
+            success: true,
+            donations // Array of donations Object
+        });
+
+    } catch (error) {
+
+        res.status(400).json({
+            message: error.message
+        });
+
+    }
+};
+
+export { createDonation, updateStatus, getUserDonations, getNGODonations }
