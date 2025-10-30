@@ -1,9 +1,13 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
+
+    // Fields specific to Donar
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    phoneNumber: {type: String , required : function() { return this.role === 'user'; } },
+    
     role: { type: String, enum: ['user', 'ngo'], required: true },
 
     // Fields specific to NGO

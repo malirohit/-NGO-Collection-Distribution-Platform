@@ -4,25 +4,34 @@ import jwt from 'jsonwebtoken';
 
 const signup = async (req, res) => {
     try {
-        const { name, email, password, role, category, location, description } = req.body;
+        const { name, email, password, phoneNumber, role, category, location, description } = req.body;
 
         // Check if user already exists
         const existingUser = await userModel.findOne({ email });
+
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'Email already exists' });
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+
         const logoUrl = req.file ? req.file.path : undefined;
 
         // Prepare user data
-        const userData = { name, email, password: hashedPassword, role };
+        const userData = {
+            name,
+            email,
+            password: hashedPassword,
+            phoneNumber,
+            role
+        };
+
         if (role === 'ngo') {
-            userData.logoUrl = logoUrl;
             userData.category = category;
             userData.location = location;
             userData.description = description;
+            userData.logoUrl = logoUrl;
         }
 
         // Create user
@@ -35,6 +44,7 @@ const signup = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
+            phoneNumber: user.phoneNumber,
             role: user.role,
             category: user.category,
             location: user.location,
@@ -42,14 +52,13 @@ const signup = async (req, res) => {
             logoUrl: user.logoUrl,
         };
 
-        res.status(201).json({ success: true, user:safeUser, token });
+        res.status(201).json({ success: true, user: safeUser, token });
 
     } catch (error) {
         console.error(error);
         res.status(400).json({ success: false, message: error.message || 'Something went wrong' });
     }
 };
-
 
 const login = async (req, res) => {
 
@@ -66,8 +75,8 @@ const login = async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'Wrong Password' });
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        
-          const safeUser = {
+
+        const safeUser = {
             _id: user._id,
             name: user.name,
             email: user.email,
@@ -80,7 +89,7 @@ const login = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Login Successful',
-            user:safeUser,
+            user: safeUser,
             token
         });
         // The response from the backend will be wrapped like this:

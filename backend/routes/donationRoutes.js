@@ -5,7 +5,8 @@ import upload from '../middleware/multer.js';
 
 const donationRouter = express.Router();
 
-donationRouter.post('/', authMiddleware, upload.single('pdf'), createDonation); // Donation will be done by user
+// donationRouter.post('/', authMiddleware, upload.single('pdf'), createDonation); // Donation will be done by user
+donationRouter.post('/', authMiddleware, upload.array('images',10), createDonation); // Donation will be done by user
 donationRouter.put('/:id/status', authMiddleware, updateStatus);
 donationRouter.get('/user/:userId', authMiddleware, getUserDonations);
 donationRouter.get('/ngo/:ngoId', authMiddleware, getNGODonations);

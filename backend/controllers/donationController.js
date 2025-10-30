@@ -4,31 +4,58 @@ import donationModel from "../models/donationModel.js";
 
 const createDonation = async (req, res) => {
 
-    const { ngoId, userName, itemName, description, userAddress } = req.body;
+    const { ngoId, userName, userEmail , userPhoneNumber , itemName, description, userAddress } = req.body;
 
     const userId = req.user._id;
-
+    
     try {
 
         console.log(req.file);
 
 
+        // V1
         //const pdfUrl = req.file ? req.file.path : undefined;
 
-         const pdfUrl = req.file
-            ? (req.file.path || req.file.secure_url || req.file.url)
-            : undefined;
 
+        //  const pdfUrl = req.file
+        //     ? (req.file.path || req.file.secure_url || req.file.url)
+        //     : undefined;
 
+        const imageFiles = req.files || [];
 
-        const donation = await donationModel.create({ userId, ngoId, userName, itemName, description, userAddress, pdfUrl });
+        if (imageFiles.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Please upload at least one image.",
+            })
+        }
 
-        res.status(201).json(donation);
+        const imageUrls = imageFiles.map(file => file.path || file.secure_url || file.url);
+
+        const donation = await donationModel.create({
+            userId,
+            ngoId,
+            userName,
+            userEmail,
+            userPhoneNumber,
+            itemName,
+            description,
+            userAddress,
+            images: imageUrls,
+        });
+
+        res.status(201).json({
+            success: true,
+            message: "Donation created successfully",
+            donation,
+        });
 
     } catch (error) {
 
+        console.error(error);
         res.status(400).json({
-            message: error.message
+            success: false,
+            message: error.message,
         });
 
     }
@@ -44,10 +71,11 @@ const updateStatus = async (req, res) => {
 
         const donation = await donationModel.findById(id);
 
-        if (!donation) return res.status(404).json({
-            success: false,
-            message: "Donation not found"
-        });
+        if (!donation)
+            return res.status(404).json({
+                success: false,
+                message: "Donation not found"
+            });
 
         donation.status = status;
 
@@ -55,13 +83,11 @@ const updateStatus = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Status Changed Successfully",
+            message: "Status updated successfully",
             donation,
         });
     } catch (error) {
-        res.status(400).json({
-            message: error.message
-        });
+        res.status(400).json({ success: false, message: error.message });
     }
 };
 
@@ -97,7 +123,7 @@ const getUserDonations = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            donations // Array of donation object done by particular use
+            donations, // Array of donation object done by particular use
         });
 
     } catch (error) {
@@ -113,7 +139,9 @@ const getNGODonations = async (req, res) => {
 
     try {
 
-        const donations = await donationModel.find({ ngoId: req.params.ngoId }).populate('userId', 'name email');
+        const donations = await donationModel
+            .find({ ngoId: req.params.ngoId })
+            .populate('userId', 'name email phoneNumber');
 
         res.status(200).json({
             success: true,
